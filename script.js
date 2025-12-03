@@ -17,15 +17,15 @@ function createSnow() {
 }
 setInterval(createSnow, 100);
 
-// 🎵 Autoplay Workaround (plays after first touch / click)
-function enableMusic() {
-  music.play().catch(() => {});
-  document.removeEventListener("click", enableMusic);
-  document.removeEventListener("touchstart", enableMusic);
-}
+// // 🎵 Autoplay Workaround (plays after first touch / click)
+// function enableMusic() {
+//   music.play().catch(() => {});
+//   document.removeEventListener("click", enableMusic);
+//   document.removeEventListener("touchstart", enableMusic);
+// }
 
-document.addEventListener("click", enableMusic);
-document.addEventListener("touchstart", enableMusic);
+// document.addEventListener("click", enableMusic);
+// document.addEventListener("touchstart", enableMusic);
 
-// Optional: Start muted then unmute (helps autoplay on some browsers)
-music.volume = 1;
+
+// music.volume = 1;
