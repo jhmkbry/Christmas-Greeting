@@ -21,14 +21,17 @@ function enableMusic() {
   music.volume = 1;
   music.loop = true;
 
-
   music.play().catch((err) => {
     console.log("Music playback blocked:", err);
   });
-    
+
   document.removeEventListener("click", enableMusic);
-  document.removeEventListener("touchstart", enableMusic);
+  document.removeEventListener("scroll", enableMusic);
+  document.removeEventListener("scroll", enableMusic);
 }
 
+// Listen for any type of interaction
 document.addEventListener("click", enableMusic, { once: true });
 document.addEventListener("touchstart", enableMusic, { once: true });
+document.addEventListener("scroll", enableMusic, { once: true });
+
