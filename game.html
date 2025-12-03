@@ -20,6 +20,13 @@
             touch-action: none;
         }
 
+        @media (max-width: 850px) {
+            body {
+                align-items: flex-start;
+                padding-top: 10vh;
+            }
+        }
+
         canvas {
             background: linear-gradient(to bottom, #87ceeb, #ffffff);
             border: 8px solid #228b22;
@@ -215,11 +222,23 @@
             gameStarted = true;
             startOverlay.style.display = 'none';
         });
+        startOverlay.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            gameStarted = true;
+            startOverlay.style.display = 'none';
+        }, { passive: false });
 
         // Game Over Overlay
         const gameOverOverlay = document.getElementById('gameOverOverlay');
         const restartBtn = document.getElementById('restartBtn');
-        restartBtn.addEventListener('click', () => {
+        restartBtn.addEventListener('click', restartGame);
+        restartBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            restartGame();
+        }, { passive: false });
+
+        function restartGame() {
             // Reset game
             player.y = gameHeight - 60;
             player.dy = 0;
@@ -233,7 +252,7 @@
             giftTimer = 0;
             obstacleInterval = 80;
             gameOverOverlay.style.display = 'none';
-        });
+        }
 
         // -------- Game Loop --------
         // Initialize clouds
