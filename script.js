@@ -17,7 +17,7 @@ function createSnow() {
 }
 setInterval(createSnow, 100);
 
-// 🎵 Autoplay Workaround (plays after first touch / click)
+
 function enableMusic() {
   music.play().catch(() => {});
   document.removeEventListener("click", enableMusic);
