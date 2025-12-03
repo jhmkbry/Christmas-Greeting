@@ -11,6 +11,9 @@ function createSnow() {
   flake.style.fontSize = Math.random() * 15 + 10 + "px";
   flake.style.animationDuration = Math.random() * 3 + 2 + "s";
 
+  flake.addEventListener("click", enableMusic, { once: true });
+  flake.addEventListener("touchstart", enableMusic, { once: true });
+
   snow.appendChild(flake);
   setTimeout(() => flake.remove(), 5000);
 }
@@ -26,12 +29,10 @@ function enableMusic() {
   });
 
   document.removeEventListener("click", enableMusic);
-  document.removeEventListener("scroll", enableMusic);
+  document.removeEventListener("touchstart", enableMusic);
   document.removeEventListener("scroll", enableMusic);
 }
 
-// Listen for any type of interaction
 document.addEventListener("click", enableMusic, { once: true });
 document.addEventListener("touchstart", enableMusic, { once: true });
 document.addEventListener("scroll", enableMusic, { once: true });
-
