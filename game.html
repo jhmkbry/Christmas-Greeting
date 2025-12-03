@@ -88,32 +88,37 @@
             animation-timing-function: linear;
         }
 
-                /* Default: leaderboard on top-right (desktop) */
-        #leaderboard {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
-            border-radius: 10px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
 
-        /* Mobile: move leaderboard below canvas */
-        @media (max-width: 768px) {
-            #leaderboard {
-                position: relative; /* stack below content */
-                top: auto;
-                right: auto;
-                margin-top: 10px;
-                width: 90%;          /* almost full width */
-                max-height: 200px;   /* smaller height */
-                left: 50%;
-                transform: translateX(-50%);
-            }
-        }
+#leaderboard {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: white;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 15px;
+    border-radius: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    width: 200px; 
+}
+
+@media (max-width: 768px) {
+    #leaderboard {
+        position: relative; 
+        top: auto;
+        right: auto;
+        margin: 20px auto 0 auto; 
+        width: 80%; 
+        max-height: auto;
+    }
+
+    body {
+        flex-direction: column; 
+        align-items: center;
+    }
+}
+
+
 
 
         @keyframes fall {
@@ -133,12 +138,14 @@
         <div>🎅 Game Over 🎅</div>
         <button id="restartBtn">Restart</button>
     </div>
-    <canvas id="gameCanvas"></canvas>
-    <div id="leaderboard"
-        style="position:absolute; top:20px; right:20px; color:white; background:rgba(0,0,0,0.5); padding:10px; border-radius:10px;">
-        <h3>Leaderboard</h3>
-        <ol id="leaderboardList"></ol>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="leaderboard">
+            <h3>Leaderboard</h3>
+            <ol id="leaderboardList"></ol>
+        </div>
     </div>
+
 
     <!-- Audio Elements -->
     <audio id="bgMusic" loop>
