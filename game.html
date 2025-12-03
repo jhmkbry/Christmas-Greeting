@@ -88,6 +88,34 @@
             animation-timing-function: linear;
         }
 
+                /* Default: leaderboard on top-right (desktop) */
+        #leaderboard {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        /* Mobile: move leaderboard below canvas */
+        @media (max-width: 768px) {
+            #leaderboard {
+                position: relative; /* stack below content */
+                top: auto;
+                right: auto;
+                margin-top: 10px;
+                width: 90%;          /* almost full width */
+                max-height: 200px;   /* smaller height */
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+
+
         @keyframes fall {
             to {
                 transform: translateY(110vh) rotate(360deg);

@@ -44,10 +44,10 @@ function enableMusic() {
 
 
 document.addEventListener("click", enableMusic, { once: true });
-document.addEventListener("touchend", enableMusic, { once: true }); // Changed from touchstart
+document.addEventListener("touchend", enableMusic, { once: true }); 
 document.addEventListener("keydown", enableMusic, { once: true });
 
 
- document.getElementById("startGameBtn").addEventListener("click", () => {
+ document.getElementById("playGameBtn").addEventListener("click", () => {
    window.location.href = "game.html"; // link to the game page
  });
