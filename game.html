@@ -203,8 +203,8 @@
 
         // Controls
         document.addEventListener('keydown', e => { if (e.code === 'Space') jump(); });
-        canvas.addEventListener('click', jump, { passive: true });
-        canvas.addEventListener('touchstart', (e) => {
+        document.addEventListener('click', jump, { passive: true });
+        document.addEventListener('touchstart', (e) => {
             e.preventDefault();
             jump();
         }, { passive: false });
