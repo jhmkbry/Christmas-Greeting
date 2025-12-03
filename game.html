@@ -5,7 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Christmas Runner</title>
+    <meta name="description"
+        content="A festive endless runner game featuring Santa Claus! Created By John Mark Boragay">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
     <style>
+        /* Body & Canvas Styling */
         body {
             margin: 0;
             padding: 0;
@@ -20,13 +26,6 @@
             touch-action: none;
         }
 
-        @media (max-width: 850px) {
-            body {
-                align-items: flex-start;
-                padding-top: 10vh;
-            }
-        }
-
         canvas {
             background: linear-gradient(to bottom, #87ceeb, #ffffff);
             border: 8px solid #228b22;
@@ -36,44 +35,6 @@
             max-height: 80vh;
             width: 800px;
             height: 400px;
-        }
-
-        @media (max-width: 850px) {
-            canvas {
-                border: 4px solid #228b22;
-                border-radius: 10px;
-                width: 95vw;
-                height: calc(95vw * 0.5);
-            }
-
-            #score {
-                font-size: 20px;
-                padding: 6px 12px;
-                top: 10px;
-            }
-
-            #startOverlay,
-            #gameOverOverlay {
-                font-size: 1.2rem;
-            }
-
-            #restartBtn {
-                font-size: 1rem !important;
-                padding: 8px 16px !important;
-            }
-        }
-
-        @media (max-width: 500px) {
-            canvas {
-                width: 98vw;
-                height: calc(98vw * 0.5);
-            }
-
-            #score {
-                font-size: 18px;
-                padding: 5px 10px;
-                top: 5px;
-            }
         }
 
         #score {
@@ -107,6 +68,13 @@
             flex-direction: column;
         }
 
+        #gameOverOverlay button {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
         .snowflake {
             position: fixed;
             top: -10px;
@@ -135,23 +103,55 @@
     <div id="startOverlay">🎄 Tap to Start 🎄</div>
     <div id="gameOverOverlay" style="display:none;">
         <div>🎅 Game Over 🎅</div>
-        <button id="restartBtn"
-            style="margin-top:20px; font-size:1.2rem; padding:10px 20px; cursor:pointer;">Restart</button>
+        <button id="restartBtn">Restart</button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div id="leaderboard"
+        style="position:absolute; top:20px; right:20px; color:white; background:rgba(0,0,0,0.5); padding:10px; border-radius:10px;">
+        <h3>Leaderboard</h3>
+        <ol id="leaderboardList"></ol>
     </div>
 
-    <canvas id="gameCanvas"></canvas>
+    <!-- Audio Elements -->
+    <audio id="bgMusic" loop>
+        <source src="game.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="jumpSound">
+        <source src="jump.wav" type="audio/mpeg">
+    </audio>
+    <audio id="gameOverSound">
+        <source src="gameOver.wav" type="audio/mpeg">
+    </audio>
 
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script>
+        // -------- Firebase Configuration & Firestore --------
+
+        // DO NOT HACK HAHA, FREE HOSTING LNG KAYA D KAYA ITAGO API KEY :(
+        const firebaseConfig = {
+            apiKey: "AIzaSyCFG8anbVkrkF58FTrig5HlQVc_FwA03S4",
+            authDomain: "christmas-runner-c996e.firebaseapp.com",
+            projectId: "christmas-runner-c996e",
+            storageBucket: "christmas-runner-c996e.firebasestorage.app",
+            messagingSenderId: "1092309677712",
+            appId: "1:1092309677712:web:2e7a93bd5c921406734a15",
+            measurementId: "G-VDVK5G9YBL"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Player name stored in sessionStorage for leaderboard
+        let playerName = sessionStorage.getItem("playerName");
+
         // -------- Snow Effect --------
         function createSnow() {
             const flake = document.createElement("div");
             flake.classList.add("snowflake");
             flake.innerHTML = "❄";
-
             flake.style.left = Math.random() * window.innerWidth + "px";
             flake.style.fontSize = (Math.random() * 15 + 10) + "px";
             flake.style.animationDuration = (Math.random() * 3 + 2) + "s";
-
             document.body.appendChild(flake);
             setTimeout(() => flake.remove(), 5000);
         }
@@ -161,302 +161,168 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Set canvas size responsively
-        function resizeCanvas() {
-            const maxWidth = 800;
-            const maxHeight = 400;
-            const aspectRatio = maxWidth / maxHeight;
+        const bgMusic = document.getElementById('bgMusic');
+        const jumpSound = document.getElementById('jumpSound');
+        const gameOverSound = document.getElementById('gameOverSound');
 
+        function resizeCanvas() {
+            const maxWidth = 800, maxHeight = 400, aspectRatio = maxWidth / maxHeight;
             let width = Math.min(maxWidth, window.innerWidth * 0.95);
             let height = width / aspectRatio;
-
-            if (height > window.innerHeight * 0.8) {
-                height = window.innerHeight * 0.8;
-                width = height * aspectRatio;
-            }
-
-            canvas.width = maxWidth;
-            canvas.height = maxHeight;
-            canvas.style.width = width + 'px';
-            canvas.style.height = height + 'px';
+            if (height > window.innerHeight * 0.8) { height = window.innerHeight * 0.8; width = height * aspectRatio; }
+            canvas.width = maxWidth; canvas.height = maxHeight;
+            canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
         }
+        resizeCanvas(); window.addEventListener('resize', resizeCanvas);
 
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-
-        const gameWidth = canvas.width;
-        const gameHeight = canvas.height;
+        const gameWidth = canvas.width, gameHeight = canvas.height;
 
         let player = { x: 50, y: gameHeight - 60, width: 50, height: 50, dy: 0, gravity: 0.8, jumpPower: -16, onGround: true };
-        let obstacles = [];
-        let obstacleTimer = 0;
-        let obstacleInterval = 80;
-        let score = 0;
-        let frameCounter = 0;
-        let gameStarted = false;
-        let gameOver = false;
-        let gameSpeed = 6;
-        let clouds = [];
-        let gifts = [];
-        let giftTimer = 0;
+        let obstacles = [], obstacleTimer = 0, obstacleInterval = 80, score = 0, frameCounter = 0, gameStarted = false, gameOver = false, gameSpeed = 6;
+        let clouds = [], gifts = [], giftTimer = 0;
+
+        // -------- Sounds --------
+        function startMusic() { bgMusic.play().catch(() => { }); }
+        function playJump() { jumpSound.currentTime = 0; jumpSound.play().catch(() => { }); }
+        function playGameOver() { gameOverSound.currentTime = 0; gameOverSound.play().catch(() => { }); }
 
         // Jump
-        function jump() {
-            if (gameStarted && !gameOver && player.onGround) {
-                player.dy = player.jumpPower;
-                player.onGround = false;
-            }
-        }
+        function jump() { if (gameStarted && !gameOver && player.onGround) { player.dy = player.jumpPower; player.onGround = false; playJump(); } }
 
         // Controls
         document.addEventListener('keydown', e => { if (e.code === 'Space') jump(); });
         document.addEventListener('click', jump, { passive: true });
-        document.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            jump();
-        }, { passive: false });
+        document.addEventListener('touchstart', e => { e.preventDefault(); jump(); }, { passive: false });
 
-        // Start Game
+        // Start Game (ask name for leaderboard, then start music)
         const startOverlay = document.getElementById('startOverlay');
-        startOverlay.addEventListener('click', () => {
+        function startGame() {
+            if (!playerName) {
+                playerName = prompt("Enter your name for the leaderboard:") || "Player";
+                sessionStorage.setItem("playerName", playerName);
+            }
             gameStarted = true;
             startOverlay.style.display = 'none';
-        });
-        startOverlay.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            gameStarted = true;
-            startOverlay.style.display = 'none';
-        }, { passive: false });
+            startMusic();
+            // Refresh leaderboard (in case new name changes saved view)
+            showLeaderboard();
+        }
+
+        startOverlay.addEventListener('click', startGame);
+        startOverlay.addEventListener('touchstart', e => { e.preventDefault(); startGame(); }, { passive: false });
 
         // Game Over Overlay
         const gameOverOverlay = document.getElementById('gameOverOverlay');
         const restartBtn = document.getElementById('restartBtn');
         restartBtn.addEventListener('click', restartGame);
-        restartBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            restartGame();
-        }, { passive: false });
+        restartBtn.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); restartGame(); }, { passive: false });
 
         function restartGame() {
-            // Reset game
-            player.y = gameHeight - 60;
-            player.dy = 0;
-            obstacles = [];
-            obstacleTimer = 0;
-            score = 0;
-            frameCounter = 0;
-            gameOver = false;
-            gameSpeed = 6;
-            gifts = [];
-            giftTimer = 0;
-            obstacleInterval = 80;
-            gameOverOverlay.style.display = 'none';
+            player.y = gameHeight - 60; player.dy = 0; obstacles = []; obstacleTimer = 0; score = 0; frameCounter = 0;
+            gameOver = false; gameSpeed = 6; gifts = []; giftTimer = 0; obstacleInterval = 80;
+            gameOverOverlay.style.display = 'none'; startMusic();
         }
 
-        // -------- Game Loop --------
         // Initialize clouds
-        for (let i = 0; i < 5; i++) {
-            clouds.push({
-                x: Math.random() * gameWidth,
-                y: Math.random() * 100 + 20,
-                width: Math.random() * 60 + 40,
-                speed: Math.random() * 0.5 + 0.3
-            });
+        for (let i = 0; i < 5; i++) { clouds.push({ x: Math.random() * gameWidth, y: Math.random() * 100 + 20, width: Math.random() * 60 + 40, speed: Math.random() * 0.5 + 0.3 }); }
+
+        // Draw player as Santa
+        function drawSanta(x, y, w, h) {
+            ctx.fillStyle = '#DC143C'; ctx.fillRect(x, y + h * 0.4, w, h * 0.6);
+            ctx.fillStyle = '#FFD9B3'; ctx.beginPath(); ctx.arc(x + w / 2, y + h * 0.25, w * 0.35, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#DC143C'; ctx.beginPath(); ctx.moveTo(x + w * 0.15, y + h * 0.25); ctx.lineTo(x + w * 0.85, y + h * 0.25); ctx.lineTo(x + w * 0.5, y); ctx.fill();
+            ctx.fillStyle = 'white'; ctx.fillRect(x + w * 0.15, y + h * 0.22, w * 0.7, h * 0.08);
+            ctx.fillStyle = '#2F2F2F'; ctx.fillRect(x, y + h * 0.65, w, h * 0.12);
+            ctx.fillStyle = '#FFD700'; ctx.fillRect(x + w * 0.35, y + h * 0.66, w * 0.3, h * 0.1);
         }
 
-        function drawSanta(x, y, width, height) {
-            // Body (red suit)
-            ctx.fillStyle = '#DC143C';
-            ctx.fillRect(x, y + height * 0.4, width, height * 0.6);
-
-            // Head
-            ctx.fillStyle = '#FFD9B3';
-            ctx.beginPath();
-            ctx.arc(x + width / 2, y + height * 0.25, width * 0.35, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Hat
-            ctx.fillStyle = '#DC143C';
-            ctx.beginPath();
-            ctx.moveTo(x + width * 0.15, y + height * 0.25);
-            ctx.lineTo(x + width * 0.85, y + height * 0.25);
-            ctx.lineTo(x + width * 0.5, y);
-            ctx.fill();
-
-            // Hat trim
-            ctx.fillStyle = 'white';
-            ctx.fillRect(x + width * 0.15, y + height * 0.22, width * 0.7, height * 0.08);
-
-            // Belt
-            ctx.fillStyle = '#2F2F2F';
-            ctx.fillRect(x, y + height * 0.65, width, height * 0.12);
-
-            // Buckle
-            ctx.fillStyle = '#FFD700';
-            ctx.fillRect(x + width * 0.35, y + height * 0.66, width * 0.3, height * 0.1);
-        }
-
-        function drawTree(x, y, width, height) {
-            // Trunk
-            ctx.fillStyle = '#8B4513';
-            ctx.fillRect(x + width * 0.35, y + height * 0.7, width * 0.3, height * 0.3);
-
-            // Tree layers
+        // Draw tree obstacle
+        function drawTree(x, y, w, h) {
+            ctx.fillStyle = '#8B4513'; ctx.fillRect(x + w * 0.35, y + h * 0.7, w * 0.3, h * 0.3);
             ctx.fillStyle = '#228B22';
-            for (let i = 0; i < 3; i++) {
-                ctx.beginPath();
-                ctx.moveTo(x + width * 0.5, y + i * height * 0.25);
-                ctx.lineTo(x, y + (i + 1) * height * 0.3);
-                ctx.lineTo(x + width, y + (i + 1) * height * 0.3);
-                ctx.closePath();
-                ctx.fill();
-            }
-
-            // Ornaments
-            ctx.fillStyle = '#FF0000';
-            ctx.beginPath();
-            ctx.arc(x + width * 0.3, y + height * 0.4, 3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#FFD700';
-            ctx.beginPath();
-            ctx.arc(x + width * 0.7, y + height * 0.5, 3, 0, Math.PI * 2);
-            ctx.fill();
+            for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(x + w * 0.5, y + i * h * 0.25); ctx.lineTo(x, y + (i + 1) * h * 0.3); ctx.lineTo(x + w, y + (i + 1) * h * 0.3); ctx.closePath(); ctx.fill(); }
+            ctx.fillStyle = '#FF0000'; ctx.beginPath(); ctx.arc(x + w * 0.3, y + h * 0.4, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(x + w * 0.7, y + h * 0.5, 3, 0, Math.PI * 2); ctx.fill();
         }
 
-        function drawGift(x, y, size) {
-            // Box
-            ctx.fillStyle = '#FF6B6B';
-            ctx.fillRect(x, y, size, size);
+        // Draw cloud
+        function drawCloud(x, y, w) { ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(x, y, w * 0.3, 0, Math.PI * 2); ctx.arc(x + w * 0.3, y - w * 0.1, w * 0.25, 0, Math.PI * 2); ctx.arc(x + w * 0.6, y, w * 0.3, 0, Math.PI * 2); ctx.fill(); }
 
-            // Ribbon
-            ctx.fillStyle = '#FFD700';
-            ctx.fillRect(x + size * 0.4, y, size * 0.2, size);
-            ctx.fillRect(x, y + size * 0.4, size, size * 0.2);
-
-            // Bow
-            ctx.beginPath();
-            ctx.arc(x + size * 0.5, y + size * 0.5, size * 0.15, 0, Math.PI * 2);
-            ctx.fill();
+        // -------- Firebase Leaderboard --------
+        // -------- Save score --------
+        function saveScore(score) {
+            db.collection("leaderboard").add({
+                name: playerName || "Player",
+                score: score,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                console.log("Score saved!");
+                showLeaderboard();
+            }).catch(err => console.error("Error saving score:", err));
         }
 
-        function drawCloud(x, y, width) {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.beginPath();
-            ctx.arc(x, y, width * 0.3, 0, Math.PI * 2);
-            ctx.arc(x + width * 0.3, y - width * 0.1, width * 0.25, 0, Math.PI * 2);
-            ctx.arc(x + width * 0.6, y, width * 0.3, 0, Math.PI * 2);
-            ctx.fill();
-        }
 
+        function showLeaderboard() {
+            const list = document.getElementById('leaderboardList');
+            if (!list) return;
+            list.innerHTML = '';
+            db.collection("leaderboard")
+                .orderBy("score", "desc")
+                .limit(10)
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        list.innerHTML = '<li>No scores yet!</li>';
+                    } else {
+                        snapshot.forEach(doc => {
+                            const li = document.createElement('li');
+                            li.textContent = `${doc.data().name}: ${doc.data().score}`;
+                            list.appendChild(li);
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error("Error loading leaderboard:", err);
+                    list.innerHTML = '<li>Error loading scores</li>';
+                });
+        }
+        // -------- Game Loop --------
         function update() {
             ctx.clearRect(0, 0, gameWidth, gameHeight);
-
-            // Sky gradient
-            const gradient = ctx.createLinearGradient(0, 0, 0, gameHeight);
-            gradient.addColorStop(0, '#87CEEB');
-            gradient.addColorStop(1, '#E0F6FF');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, gameWidth, gameHeight);
-
-            // Draw and move clouds
-            clouds.forEach(cloud => {
-                drawCloud(cloud.x, cloud.y, cloud.width);
-                cloud.x -= cloud.speed;
-                if (cloud.x + cloud.width < 0) {
-                    cloud.x = gameWidth;
-                    cloud.y = Math.random() * 100 + 20;
-                }
-            });
-
-            // Ground
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, gameHeight - 10, gameWidth, 10);
+            const gradient = ctx.createLinearGradient(0, 0, 0, gameHeight); gradient.addColorStop(0, '#87CEEB'); gradient.addColorStop(1, '#E0F6FF'); ctx.fillStyle = gradient; ctx.fillRect(0, 0, gameWidth, gameHeight);
+            clouds.forEach(cloud => { drawCloud(cloud.x, cloud.y, cloud.width); cloud.x -= cloud.speed; if (cloud.x + cloud.width < 0) { cloud.x = gameWidth; cloud.y = Math.random() * 100 + 20; } });
+            ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, gameHeight - 10, gameWidth, 10);
 
             if (gameStarted && !gameOver) {
-                // Increase difficulty
-                if (score > 0 && score % 100 === 0 && gameSpeed < 10) {
-                    gameSpeed += 0.1;
-                }
-
-                // Player physics
-                player.dy += player.gravity;
-                player.y += player.dy;
-                if (player.y >= gameHeight - player.height) {
-                    player.y = gameHeight - player.height;
-                    player.dy = 0;
-                    player.onGround = true;
-                }
-
-                // Draw player as Santa
+                player.dy += player.gravity; player.y += player.dy;
+                if (player.y >= gameHeight - player.height) { player.y = gameHeight - player.height; player.dy = 0; player.onGround = true; }
                 drawSanta(player.x, player.y, player.width, player.height);
 
-                // Spawn obstacles
-                obstacleTimer++;
-                if (obstacleTimer > obstacleInterval) {
-                    obstacles.push({ x: gameWidth, y: gameHeight - 50, width: 50, height: 50, type: 'tree' });
-                    obstacleTimer = 0;
-                    obstacleInterval = Math.max(50, 80 - Math.floor(score / 50));
-                }
+                obstacleTimer++; if (obstacleTimer > obstacleInterval) { obstacles.push({ x: gameWidth, y: gameHeight - 50, width: 50, height: 50 }); obstacleTimer = 0; obstacleInterval = Math.max(50, 80 - Math.floor(score / 50)); }
 
-                // Spawn gifts
-                giftTimer++;
-                if (giftTimer > 150) {
-                    gifts.push({ x: gameWidth, y: gameHeight - 80 - Math.random() * 100, size: 30, collected: false });
-                    giftTimer = 0;
-                }
-
-                // Update and draw gifts
-                gifts.forEach((gift, i) => {
-                    gift.x -= gameSpeed * 0.8;
-                    drawGift(gift.x, gift.y, gift.size);
-
-                    // Collect gifts
-                    if (!gift.collected &&
-                        player.x < gift.x + gift.size &&
-                        player.x + player.width > gift.x &&
-                        player.y < gift.y + gift.size &&
-                        player.y + player.height > gift.y
-                    ) {
-                        gift.collected = true;
-                        score += 10;
-                    }
-                });
-                gifts = gifts.filter(g => g.x + g.size > 0);
-
-                // Update and draw obstacles
                 obstacles.forEach((obs, i) => {
-                    obs.x -= gameSpeed;
-                    drawTree(obs.x, obs.y, obs.width, obs.height);
-
-                    // Collision detection
-                    if (
-                        player.x < obs.x + obs.width - 10 &&
-                        player.x + player.width - 10 > obs.x &&
-                        player.y < obs.y + obs.height - 10 &&
-                        player.y + player.height > obs.y
-                    ) {
-                        gameOver = true;
-                        gameOverOverlay.style.display = 'flex';
+                    obs.x -= gameSpeed; drawTree(obs.x, obs.y, obs.width, obs.height);
+                    if (player.x < obs.x + obs.width - 10 && player.x + player.width - 10 > obs.x && player.y < obs.y + obs.height - 10 && player.y + player.height > obs.y) {
+                        gameOver = true; gameOverOverlay.style.display = 'flex'; playGameOver();
+                        // Save score to Firestore leaderboard
+                        try { saveScore(score); } catch (e) { console.warn('saveScore unavailable', e); }
                     }
                 });
-
                 obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
 
-                // Score
-                frameCounter++;
-                if (frameCounter % 5 === 0) score++;
+                frameCounter++; if (frameCounter % 5 === 0) score++;
                 document.getElementById('score').innerText = '🎁 ' + score;
-
             } else {
-                // Draw player waiting
                 drawSanta(player.x, player.y, player.width, player.height);
             }
 
             requestAnimationFrame(update);
         }
-
+        showLeaderboard();
         update();
+
+
+
     </script>
 </body>
 
