@@ -347,6 +347,7 @@
 
                 frameCounter++; if (frameCounter % 5 === 0) score++;
                 document.getElementById('score').innerText = '🎁 ' + score;
+                gameSpeed = 6 + score * 0.02; 
             } else {
                 drawSanta(player.x, player.y, player.width, player.height);
             }
