@@ -51,3 +51,9 @@ document.addEventListener("keydown", enableMusic, { once: true });
  document.getElementById("playGameBtn").addEventListener("click", () => {
    window.location.href = "game.html"; // link to the game page
  });
+
+ window.addEventListener("load", function () {
+   setTimeout(() => {
+     document.getElementById("playGameBtn").style.display = "block";
+   }, 5000);
+ });
