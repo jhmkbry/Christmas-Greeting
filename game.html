@@ -333,7 +333,21 @@
                 if (player.y >= gameHeight - player.height) { player.y = gameHeight - player.height; player.dy = 0; player.onGround = true; }
                 drawSanta(player.x, player.y, player.width, player.height);
 
-                obstacleTimer++; if (obstacleTimer > obstacleInterval) { obstacles.push({ x: gameWidth, y: gameHeight - 50, width: 50, height: 50 }); obstacleTimer = 0; obstacleInterval = Math.max(50, 80 - Math.floor(score / 50)); }
+                obstacleTimer++;
+                if (obstacleTimer > obstacleInterval) {
+                    obstacles.push({
+                        x: gameWidth,
+                        y: gameHeight - (40 + Math.random() * 20), // random slight height variation
+                        width: 40 + Math.random() * 30,           // random width
+                        height: 40 + Math.random() * 30           // random height
+                    });
+
+                    obstacleTimer = 0;
+
+                    // Randomize interval so trees don't appear evenly spaced
+                    const base = Math.max(50, 80 - Math.floor(score / 50));
+                    obstacleInterval = base + Math.floor(Math.random() * 20); // +0 to +20 randomness
+                }
 
                 obstacles.forEach((obs, i) => {
                     obs.x -= gameSpeed; drawTree(obs.x, obs.y, obs.width, obs.height);
@@ -345,7 +359,7 @@
                 });
                 obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
 
-                frameCounter++; if (frameCounter % 5 === 0) score++;
+                frameCounter++; if (frameCounter % 15 === 0) score++;
                 document.getElementById('score').innerText = '🎁 ' + score;
                 gameSpeed = 6 + score * 0.02; 
             } else {
