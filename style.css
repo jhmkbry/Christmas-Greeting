@@ -85,7 +85,7 @@ body {
 
  /* Play Button Styling */
         #playGameBtn {
-            display: inline-block;
+            display: none;
             padding: 15px 30px;
             font-size: 1.2rem;
             background-color: #228b22;
@@ -103,9 +103,11 @@ body {
         }
 
         .button-container {
-            text-align: center;
-            margin-top: 30px;
-        }
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+}
+
 @keyframes fall {
     to {
         transform: translateY(110vh) rotate(360deg);
